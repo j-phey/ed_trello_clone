@@ -17,7 +17,7 @@ from flask_bcrypt import Bcrypt
 bcrypt = Bcrypt(app) # bcrypt will be the object that encrypts our passwords
 
 app.config["JWT_SECRET_KEY"] = "Backend best end" 
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 jwt = JWTManager(app)
 
 from datetime import timedelta, date
@@ -216,3 +216,32 @@ def card_create():
     db.session.commit()
     #return the card in the response
     return jsonify(card_schema.dump(new_card))
+
+# DELETE A CARD
+
+#add the id to let the server know the card we want to delete
+@app.route("/cards/<int:id>", methods=["DELETE"])
+@jwt_required()
+# Includes the id parameter
+def card_delete(id):
+    # CHECK IF THE USER IS AUTHORISED
+    #get the user id invoking get_jwt_identity
+    user_id = get_jwt_identity()
+    #Find it in the db
+    stmt = db.select(User).filter_by(id=user_id)
+    user = db.session.scalar(stmt)
+    # Make sure it is in the database
+    if not user:
+        return abort(401, description="Invalid user")
+
+    # IF AUTHORISED... find the card
+    stmt = db.select(Card).filter_by(id=id)
+    card = db.session.scalar(stmt)
+    # return an error if the card doesn't exist
+    if not card:
+        return abort(400, description= "Card doesn't exist")
+    # Delete the card from the database and commit
+    db.session.delete(card)
+    db.session.commit()
+    # return the card in the response
+    return jsonify(card_schema.dump(card))
