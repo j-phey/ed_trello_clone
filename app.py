@@ -230,9 +230,12 @@ def card_delete(id):
     #Find it in the db
     stmt = db.select(User).filter_by(id=user_id)
     user = db.session.scalar(stmt)
-    # Make sure it is in the database
+    # Make sure user is in the database
     if not user:
         return abort(401, description="Invalid user")
+    # Make sure user is an admin
+    if not user.admin:
+        return abort(401, description="Unauthorised user")
 
     # IF AUTHORISED... find the card
     stmt = db.select(Card).filter_by(id=id)
